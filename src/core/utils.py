@@ -17,6 +17,9 @@ EXT_TO_FORMAT: dict[str, str] = {
     ".jpeg": "JPEG",
     ".png": "PNG",
     ".webp": "WEBP",
+    ".avif": "AVIF",
+    ".heic": "HEIF",
+    ".heif": "HEIF",
 }
 
 FALLBACK_EXTENSIONS: dict[str, str] = {
@@ -26,7 +29,7 @@ FALLBACK_EXTENSIONS: dict[str, str] = {
     ".tiff": ".png",
 }
 
-SUPPORTED_INPUT_TYPES = "*.jpg *.jpeg *.png *.webp *.bmp *.gif *.tif *.tiff"
+SUPPORTED_INPUT_TYPES = "*.jpg *.jpeg *.png *.webp *.bmp *.gif *.tif *.tiff *.heic *.heif *.avif"
 
 ORIGINAL_FORMAT = "original"
 CUSTOM_OUTPUT = "custom"

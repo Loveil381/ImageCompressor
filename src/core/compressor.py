@@ -25,6 +25,17 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+except ImportError:
+    pass
+
+try:
+    import pillow_avif
+except ImportError:
+    pass
+
 from .engines.base import CompressionEngine
 from .models import CompressionResult
 from .utils import EXT_TO_FORMAT, write_bytes

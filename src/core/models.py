@@ -43,6 +43,9 @@ class CompressionConfig:
     strip_exif: bool = False
     language: str = "zh"
     engine_preference: str = "auto"  # "auto" | "vips" | "pillow"
+    watch_enabled: bool = False
+    watch_dirs: list[str] = field(default_factory=list)
+    watch_recursive: bool = False
 
 
 @dataclass

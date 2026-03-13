@@ -63,6 +63,16 @@ class VipsEngine(CompressionEngine):
                     strip=strip_exif,
                 ),
             )
+        if save_format == "AVIF":
+            # heifsave_buffer supports AVIF via compression="av1"
+            return cast(
+                bytes,
+                image.heifsave_buffer(
+                    Q=quality,
+                    compression="av1",
+                    effort=6,
+                ),
+            )
         raise ValueError(f"不支持的有损格式：{save_format}")
 
     def encode_png(

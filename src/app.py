@@ -35,6 +35,7 @@ from .ui.settings_panel import SettingsPanel
 from .ui.theme import APP_TITLE, APP_VERSION, FONT_DEFAULT
 from .workers.compress_worker import CompressWorker
 from .workers.message_handler import MessageHandler
+from .workers.watch_worker import WatchWorker
 
 _POLL_INTERVAL_MS = 50  # How often the UI checks the worker queue
 
@@ -64,8 +65,11 @@ class App(ttk.Window):
         self.minsize(620, 560)
 
         self._worker = CompressWorker()
+        self._watch_compress_worker = CompressWorker()
+        self._watch_worker = WatchWorker(on_image_found=self._on_watch_image_found)
         self._running = False
         self._msg_handler: MessageHandler | None = None
+        self._watch_msg_handler: MessageHandler | None = None
         self._config = load_config()
         try:
             set_language(self._config.language)
@@ -74,7 +78,9 @@ class App(ttk.Window):
 
         self._build_ui()
         self._settings.apply_config(self._config)
+        self._settings.bind("<<WatchConfigChanged>>", self._on_watch_config_changed)
         self._center_window()
+        self.apply_watch_config()
 
         self._tray_icon = None
         self._tray_running = False
@@ -92,9 +98,22 @@ class App(ttk.Window):
     def _on_close(self) -> None:
         if self._running:
             self._worker.cancel()
+        self._watch_worker.stop()
+        if self._watch_compress_worker.is_alive():
+            self._watch_compress_worker.cancel()
+            
         if self._tray_icon:
             self._tray_icon.stop()
-        save_config(self._settings.get_config())
+        
+        # Grab current UI settings and sync to config
+        current_config = self._settings.get_config()
+        self._config.target_size_str = current_config.target_size_str
+        self._config.format_choice = current_config.format_choice
+        self._config.output_mode = current_config.output_mode
+        self._config.custom_dir = current_config.custom_dir
+        self._config.strip_exif = current_config.strip_exif
+        self._config.engine_preference = current_config.engine_preference
+        save_config(self._config)
         self.destroy()
 
     def _hide_to_tray(self) -> None:
@@ -308,6 +327,71 @@ class App(ttk.Window):
             if self._msg_handler and self._msg_handler.handle(msg):
                 return  # terminal message (done / cancelled)
         self.after(_POLL_INTERVAL_MS, self._poll_worker)
+
+    def _poll_watch_worker(self) -> None:
+        while True:
+            try:
+                msg = self._watch_compress_worker.result_queue.get_nowait()
+            except _queue.Empty:
+                break
+            if self._watch_msg_handler and self._watch_msg_handler.handle(msg):
+                return
+        if self._watch_compress_worker.is_alive():
+            self.after(_POLL_INTERVAL_MS, self._poll_watch_worker)
+
+    def apply_watch_config(self) -> None:
+        if self._config.watch_enabled:
+            self._watch_worker.start(
+                directories=self._config.watch_dirs,
+                recursive=self._config.watch_recursive
+            )
+            self._log.append_info(T("watch_started") + f": {len(self._config.watch_dirs)} dirs")
+        else:
+            if self._watch_worker.is_running():
+                self._watch_worker.stop()
+                self._log.append_info(T("watch_stopped"))
+
+    def _on_watch_config_changed(self, event: tk.Event) -> None:  # type: ignore[type-arg, unused-ignore]
+        current_config = self._settings.get_config()
+        self._config.watch_enabled = current_config.watch_enabled
+        self._config.watch_dirs = current_config.watch_dirs
+        self._config.watch_recursive = current_config.watch_recursive
+        self.apply_watch_config()
+
+    def _on_watch_image_found(self, path: str) -> None:
+        try:
+            target_bytes = parse_size(self._settings.size_var.get())
+        except ValueError:
+            target_bytes = 500 * 1024
+
+        task = CompressionTask(src_path=path, target_bytes=target_bytes, output_path="")
+        
+        if not self._watch_compress_worker.is_alive():
+            self._watch_msg_handler = MessageHandler(
+                log=self._log,
+                progress=None,
+                status=None,
+                target_bytes=target_bytes,
+                start_time=time.time(),
+                on_complete=lambda ok, fail: None,
+                on_cancel=lambda: None,
+            )
+            
+            self._log.append_info(T("auto_compressing").format(name=Path(path).name))
+            
+            self._watch_compress_worker.start(
+                tasks=[task],
+                fmt_choice=self._settings.fmt_var.get(),
+                output_mode=self._settings.out_var.get(),
+                custom_dir=self._settings.custom_dir_var.get().strip(),
+                strip_exif=self._settings.strip_exif_var.get(),
+                engine_preference=self._settings.engine_preference_var.get(),
+                continuous=True,
+            )
+            self.after(_POLL_INTERVAL_MS, self._poll_watch_worker)
+        else:
+            self._log.append_info(T("auto_compressing").format(name=Path(path).name))
+            self._watch_compress_worker.append_task(task)
 
     # ------------------------------------------------------------------
     # Batch callbacks (invoked by MessageHandler)

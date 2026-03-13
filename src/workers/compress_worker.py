@@ -47,6 +47,7 @@ class CompressWorker:
         self._thread: threading.Thread | None = None
         self._cancel_event = threading.Event()
         self.result_queue: queue.Queue[dict] = queue.Queue()
+        self._task_queue: queue.Queue[CompressionTask] = queue.Queue()
 
     # ------------------------------------------------------------------
     # Public API
@@ -60,6 +61,7 @@ class CompressWorker:
         custom_dir: str,
         strip_exif: bool,
         engine_preference: str = "auto",
+        continuous: bool = False,
     ) -> None:
         """Start the compression batch in a daemon thread.
 
@@ -67,12 +69,27 @@ class CompressWorker:
         is already running.
         """
         self._cancel_event.clear()
+        
+        # Clear queue and add new tasks
+        while not self._task_queue.empty():
+            try:
+                self._task_queue.get_nowait()
+            except queue.Empty:
+                break
+                
+        for t in tasks:
+            self._task_queue.put(t)
+            
         self._thread = threading.Thread(
             target=self._run,
-            args=(tasks, fmt_choice, output_mode, custom_dir, strip_exif, engine_preference),
+            args=(len(tasks), fmt_choice, output_mode, custom_dir, strip_exif, engine_preference, continuous),
             daemon=True,
         )
         self._thread.start()
+
+    def append_task(self, task: CompressionTask) -> None:
+        """Append a single task to the running thread queue."""
+        self._task_queue.put(task)
 
     def cancel(self) -> None:
         """Request cancellation.  The worker will stop before the next file."""
@@ -87,28 +104,39 @@ class CompressWorker:
 
     def _run(
         self,
-        tasks: list[CompressionTask],
+        initial_total: int,
         fmt_choice: str,
         output_mode: str,
         custom_dir: str,
         strip_exif: bool,
         engine_preference: str,
+        continuous: bool,
     ) -> None:
         success = 0
         failure = 0
-        total = len(tasks)
+        index = 0
         _engine_name = get_engine_name(engine_preference)
 
-        for index, task in enumerate(tasks, start=1):
+        while True:
             if self._cancel_event.is_set():
                 self.result_queue.put({"type": "cancelled"})
                 return
+
+            try:
+                task = self._task_queue.get(timeout=0.5)
+            except queue.Empty:
+                if not continuous:
+                    break
+                continue
+
+            index += 1
+            current_total = max(initial_total, index + self._task_queue.qsize())
 
             self.result_queue.put(
                 {
                     "type": "progress",
                     "index": index,
-                    "total": total,
+                    "total": current_total,
                     "name": task.src_name,
                 }
             )

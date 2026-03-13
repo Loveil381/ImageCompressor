@@ -154,6 +154,44 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ja": ", {pct} にリサイズ",
     },
     # -----------------------------------------------------------------------
+    # Watch Mode
+    # -----------------------------------------------------------------------
+    "watch_mode_enable": {
+        "zh": "开启监控模式 (自动压缩新图片)",
+        "en": "Enable Watch Mode (Auto-compress new images)",
+        "ja": "監視モードを有効にする（新しい画像を自動圧縮）",
+    },
+    "watch_recursive": {
+        "zh": "包含子目录",
+        "en": "Include Sub-directories",
+        "ja": "サブディレクトリを含める",
+    },
+    "watch_add_dir": {
+        "zh": "添加监控目录...",
+        "en": "Add Watch Directory...",
+        "ja": "監視ディレクトリを追加...",
+    },
+    "watch_clear_dirs": {
+        "zh": "清空目录",
+        "en": "Clear Directories",
+        "ja": "ディレクトリをクリア",
+    },
+    "watch_started": {
+        "zh": "已启动监控",
+        "en": "Watch mode started",
+        "ja": "監視モードを開始しました",
+    },
+    "watch_stopped": {
+        "zh": "已停止监控",
+        "en": "Watch mode stopped",
+        "ja": "監視モードを停止しました",
+    },
+    "auto_compressing": {
+        "zh": "自动压缩新文件: {name}",
+        "en": "Auto-compressing new file: {name}",
+        "ja": "新しいファイルを自動圧縮中: {name}",
+    },
+    # -----------------------------------------------------------------------
     # Dialogs / error messages
     # -----------------------------------------------------------------------
     "dlg_title": {"zh": "图片压缩工具", "en": "Image Compressor", "ja": "画像圧縮ツール"},

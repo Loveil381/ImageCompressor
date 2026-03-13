@@ -38,8 +38,13 @@ class SettingsPanel(ttk.Frame):
             value=self._engine_value_to_label.get("auto", self._engine_choices[0][0])
         )
 
+        self.watch_enabled_var = tk.BooleanVar(value=False)
+        self.watch_recursive_var = tk.BooleanVar(value=False)
+        self.watch_dirs: list[str] = []
+
         self._build()
         self._sync_output_controls()
+        self._sync_watch_controls()
 
     def _build(self) -> None:
         self.columnconfigure(0, weight=1)
@@ -68,8 +73,9 @@ class SettingsPanel(ttk.Frame):
             ("JPEG", ".jpg"),
             ("PNG", ".png"),
             ("WebP", ".webp"),
+            ("AVIF", ".avif"),
         ):
-            display = label_key if label_key in ("JPEG", "PNG", "WebP") else T(label_key)
+            display = label_key if label_key in ("JPEG", "PNG", "WebP", "AVIF") else T(label_key)
             ttk.Radiobutton(row_fmt, text=display, variable=self.fmt_var, value=value).pack(
                 side="left", padx=6
             )
@@ -129,6 +135,57 @@ class SettingsPanel(ttk.Frame):
         self._engine_combo.pack(side="left", padx=(6, 0))
         self._engine_combo.bind("<<ComboboxSelected>>", self._on_engine_change)
 
+        # --- Watch Mode row ---
+        row_watch = ttk.Frame(card)
+        row_watch.grid(row=5, column=0, sticky="w", pady=(4, 4), padx=6)
+        
+        ttk.Checkbutton(
+            row_watch, text=T("watch_mode_enable"), variable=self.watch_enabled_var, 
+            bootstyle="round-toggle", command=self._on_watch_toggle
+        ).pack(side="left")
+        
+        self.watch_dirs_frame = ttk.Frame(card)
+        self.watch_dirs_frame.grid(row=6, column=0, sticky="nsew", padx=24, pady=(0, 4))
+        self.watch_dirs_frame.columnconfigure(0, weight=1)
+        
+        watch_top = ttk.Frame(self.watch_dirs_frame)
+        watch_top.pack(fill="x", pady=(0, 4))
+        
+        ttk.Button(watch_top, text=T("watch_add_dir"), command=self._watch_add_dir, bootstyle="secondary-outline").pack(side="left")
+        ttk.Button(watch_top, text=T("watch_clear_dirs"), command=self._watch_clear_dirs, bootstyle="secondary-outline").pack(side="left", padx=4)
+        
+        ttk.Checkbutton(
+            watch_top, text=T("watch_recursive"), variable=self.watch_recursive_var, command=self._on_watch_config_change
+        ).pack(side="right")
+        
+        self.watch_dirs_listbox = tk.Listbox(self.watch_dirs_frame, height=3, font=FONT_MONO)
+        self.watch_dirs_listbox.pack(fill="x", expand=True)
+
+    def _sync_watch_controls(self) -> None:
+        if self.watch_enabled_var.get():
+            self.watch_dirs_frame.grid()
+        else:
+            self.watch_dirs_frame.grid_remove()
+            
+    def _on_watch_toggle(self) -> None:
+        self._sync_watch_controls()
+        self._on_watch_config_change()
+            
+    def _watch_add_dir(self) -> None:
+        directory = filedialog.askdirectory(title=T("watch_add_dir"))
+        if directory and directory not in self.watch_dirs:
+            self.watch_dirs.append(directory)
+            self.watch_dirs_listbox.insert("end", directory)
+            self._on_watch_config_change()
+
+    def _watch_clear_dirs(self) -> None:
+        self.watch_dirs.clear()
+        self.watch_dirs_listbox.delete(0, "end")
+        self._on_watch_config_change()
+
+    def _on_watch_config_change(self) -> None:
+        self.event_generate("<<WatchConfigChanged>>")
+
     def _sync_output_controls(self) -> None:
         state = "normal" if self.out_var.get() == CUSTOM_OUTPUT else "disabled"
         self._custom_entry.configure(state=state)
@@ -168,7 +225,17 @@ class SettingsPanel(ttk.Frame):
         self._engine_display_var.set(
             self._engine_value_to_label.get(pref, self._engine_choices[0][0])
         )
+        self.watch_enabled_var.set(config.watch_enabled)
+        self.watch_recursive_var.set(config.watch_recursive)
+        
+        self.watch_dirs.clear()
+        self.watch_dirs.extend(config.watch_dirs)
+        self.watch_dirs_listbox.delete(0, "end")
+        for d in self.watch_dirs:
+            self.watch_dirs_listbox.insert("end", d)
+            
         self._sync_output_controls()
+        self._sync_watch_controls()
 
     def get_config(self) -> CompressionConfig:
         return CompressionConfig(
@@ -179,6 +246,9 @@ class SettingsPanel(ttk.Frame):
             strip_exif=bool(self.strip_exif_var.get()),
             language=get_language(),
             engine_preference=self.engine_preference_var.get() or "auto",
+            watch_enabled=bool(self.watch_enabled_var.get()),
+            watch_dirs=list(self.watch_dirs),
+            watch_recursive=bool(self.watch_recursive_var.get()),
         )
 
     def _on_engine_change(self, event: tk.Event) -> None:  # type: ignore[type-arg]

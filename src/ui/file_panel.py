@@ -15,7 +15,7 @@ from ..core.utils import SUPPORTED_INPUT_TYPES, format_bytes, get_file_size
 from ..i18n.strings import T
 from .theme import FONT_DEFAULT, FONT_MONO_SM
 
-_IMAGE_EXTS = frozenset([".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff"])
+_IMAGE_EXTS = frozenset([".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff", ".avif", ".heic", ".heif"])
 
 
 def _collect_images_from_path(path: str) -> list[str]:

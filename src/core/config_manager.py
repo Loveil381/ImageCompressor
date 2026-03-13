@@ -31,6 +31,8 @@ def load_config() -> CompressionConfig:
         merged[field.name] = raw.get(field.name, defaults[field.name])
 
     try:
+        watch_dirs_raw = merged["watch_dirs"]
+        watch_dirs = [str(x) for x in watch_dirs_raw] if isinstance(watch_dirs_raw, list) else []
         return CompressionConfig(
             target_size_str=str(merged["target_size_str"]),
             format_choice=str(merged["format_choice"]),
@@ -39,6 +41,9 @@ def load_config() -> CompressionConfig:
             strip_exif=bool(merged["strip_exif"]),
             language=str(merged["language"]),
             engine_preference=str(merged["engine_preference"]),
+            watch_enabled=bool(merged["watch_enabled"]),
+            watch_dirs=watch_dirs,
+            watch_recursive=bool(merged["watch_recursive"]),
         )
     except (TypeError, KeyError):
         return default_config

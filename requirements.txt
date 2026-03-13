@@ -2,6 +2,11 @@ Pillow>=10.0.0
 # Optional: modern UI and drag-and-drop (recommended)
 ttkbootstrap>=1.10.0
 tkinterdnd2>=0.3.0
+# Optional: modern formats (AVIF, HEIC)
+pillow-heif>=0.16.0
+pillow-avif-plugin>=1.4.3
+# Optional: directory watching
+watchdog>=4.0.0
 # Optional: high-performance compression engine (3-5x faster, 10x less memory)
 # Requires libvips system library.  Install with: pip install pyvips
 # pyvips>=2.2.0

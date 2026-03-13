@@ -158,6 +158,9 @@ class PillowEngine(CompressionEngine):
         elif save_format == "WEBP":
             kwargs.update({"quality": quality, "method": 6})
             kwargs.update(_metadata_kwargs(image, ("exif", "icc_profile", "xmp")))
+        elif save_format == "AVIF":
+            kwargs.update({"quality": quality, "speed": 6})
+            kwargs.update(_metadata_kwargs(image, ("exif", "icc_profile", "xmp")))
         else:
             raise ValueError(f"不支持的有损格式：{save_format}")
         image.save(buf, **cast(Any, kwargs))
