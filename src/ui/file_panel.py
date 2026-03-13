@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import os
-import subprocess
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, Menu
 
 import ttkbootstrap as ttk
 
+from ..core.platform import open_directory, open_file
 from ..core.utils import SUPPORTED_INPUT_TYPES, format_bytes, get_file_size
 from ..i18n.strings import T
 from .theme import FONT_DEFAULT, FONT_MONO_SM
@@ -144,20 +144,14 @@ class FilePanel(ttk.Frame):
             return
         path = self.files[sel[0]]
         parent = os.path.dirname(path)
-        if os.name == "nt":
-            os.startfile(parent)
-        elif os.name == "posix":
-            subprocess.run(["open", parent])
+        open_directory(parent)
 
     def _preview_original(self) -> None:
         sel = self._listbox.curselection()
         if not sel:
             return
         path = self.files[sel[0]]
-        if os.name == "nt":
-            os.startfile(path)
-        elif os.name == "posix":
-            subprocess.run(["open", path])
+        open_file(path)
 
     def _on_right_click(self, event: tk.Event) -> None:  # type: ignore[type-arg]
         # Select the item under cursor if not already selected

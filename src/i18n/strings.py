@@ -61,6 +61,26 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Strip EXIF metadata (GPS / camera info)",
         "ja": "EXIF メタデータを削除（GPS / カメラ情報）",
     },
+    "label_engine_preference": {
+        "zh": "引擎偏好:",
+        "en": "Engine preference:",
+        "ja": "エンジン設定:",
+    },
+    "engine_pref_auto": {
+        "zh": "自动",
+        "en": "Auto",
+        "ja": "自動",
+    },
+    "engine_pref_vips": {
+        "zh": "pyvips (高性能)",
+        "en": "pyvips (High performance)",
+        "ja": "pyvips (高性能)",
+    },
+    "engine_pref_pillow": {
+        "zh": "Pillow (兼容)",
+        "en": "Pillow (Compatible)",
+        "ja": "Pillow (互換)",
+    },
     # -----------------------------------------------------------------------
     # Action buttons
     # -----------------------------------------------------------------------
@@ -94,6 +114,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "zh": "待处理文件：{n}",
         "en": "Files to process: {n}",
         "ja": "処理ファイル数：{n}",
+    },
+    "log_engine": {
+        "zh": "压缩引擎：{engine}",
+        "en": "Engine: {engine}",
+        "ja": "圧縮エンジン：{engine}",
     },
     "log_ok": {
         "zh": "[OK] {name}\n  {orig} → {out} ({ratio:.1f}%){scale}\n  格式：{fmt}，参数：{quality}\n  输出：{outname}{warn}",

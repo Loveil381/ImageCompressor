@@ -17,7 +17,6 @@ env/
 # Build & distribution artefacts
 build/
 dist/
-*.spec.bak
 
 # Test artefacts
 .pytest_cache/

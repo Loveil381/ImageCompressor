@@ -1,7 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller build spec for the image compression tool."""
 
-import sys
 from pathlib import Path
 
 block_cipher = None
@@ -14,6 +13,7 @@ a = Analysis(
     hiddenimports=[
         'PIL._tkinter_finder',
         'tkinterdnd2',
+        'ttkbootstrap',
     ],
     hookspath=[],
     hooksconfig={},
@@ -31,7 +31,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='图片压缩工具',
+    name='ImageCompressor',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

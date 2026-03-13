@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+        engine: ["pillow-only", "with-vips"]
+
+    env:
+      QT_QPA_PLATFORM: offscreen
+      DISPLAY: ""
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install base dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Install pyvips
+        if: matrix.engine == 'with-vips'
+        run: |
+          sudo apt-get update && sudo apt-get install -y libvips-dev
+          pip install "pyvips>=2.2.0"
+
+      - name: Ruff lint
+        run: ruff check src/ tests/
+
+      - name: Ruff format
+        run: ruff format --check src/ tests/
+
+      - name: Mypy
+        run: mypy src/ --ignore-missing-imports
+
+      - name: Pytest
+        run: python -m pytest tests/ -v --cov=src

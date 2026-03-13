@@ -1,0 +1,46 @@
+"""Configuration persistence for the image compressor app."""
+
+from __future__ import annotations
+
+import json
+import logging
+from dataclasses import asdict, fields
+from pathlib import Path
+
+from .models import CompressionConfig
+
+logger = logging.getLogger(__name__)
+
+CONFIG_PATH = Path.home() / ".imagecompressor" / "config.json"
+
+
+def load_config() -> CompressionConfig:
+    """Load persisted config from disk, falling back to defaults on failure."""
+    default_config = CompressionConfig()
+    try:
+        with CONFIG_PATH.open("r", encoding="utf-8") as fh:
+            raw = json.load(fh)
+        if not isinstance(raw, dict):
+            return default_config
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return default_config
+
+    defaults = asdict(default_config)
+    merged: dict[str, object] = {}
+    for field in fields(CompressionConfig):
+        merged[field.name] = raw.get(field.name, defaults[field.name])
+
+    try:
+        return CompressionConfig(**merged)
+    except TypeError:
+        return default_config
+
+
+def save_config(config: CompressionConfig) -> None:
+    """Persist *config* to disk as UTF-8 JSON."""
+    try:
+        CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with CONFIG_PATH.open("w", encoding="utf-8") as fh:
+            json.dump(asdict(config), fh, ensure_ascii=False, indent=2)
+    except (OSError, TypeError, ValueError) as exc:
+        logger.warning("Failed to save config file: %s", exc)

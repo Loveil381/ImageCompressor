@@ -41,6 +41,8 @@ class CompressionConfig:
     output_mode: str = "same_dir"     # "same_dir" | "custom"
     custom_dir: str = ""
     strip_exif: bool = False
+    language: str = "zh"
+    engine_preference: str = "auto"  # "auto" | "vips" | "pillow"
 
 
 @dataclass

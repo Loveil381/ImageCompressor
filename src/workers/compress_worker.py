@@ -37,7 +37,7 @@ from pathlib import Path
 
 from PIL import UnidentifiedImageError
 
-from ..core.compressor import compress_image
+from ..core.compressor import compress_image, get_engine_name
 from ..core.models import CompressionResult, CompressionTask
 from ..core.utils import build_output_path, get_file_size, resolve_output_extension
 
@@ -61,6 +61,7 @@ class CompressWorker:
         output_mode: str,
         custom_dir: str,
         strip_exif: bool,
+        engine_preference: str = "auto",
     ) -> None:
         """Start the compression batch in a daemon thread.
 
@@ -70,7 +71,7 @@ class CompressWorker:
         self._cancel_event.clear()
         self._thread = threading.Thread(
             target=self._run,
-            args=(tasks, fmt_choice, output_mode, custom_dir, strip_exif),
+            args=(tasks, fmt_choice, output_mode, custom_dir, strip_exif, engine_preference),
             daemon=True,
         )
         self._thread.start()
@@ -93,10 +94,12 @@ class CompressWorker:
         output_mode: str,
         custom_dir: str,
         strip_exif: bool,
+        engine_preference: str,
     ) -> None:
         success = 0
         failure = 0
         total = len(tasks)
+        _engine_name = get_engine_name(engine_preference)
 
         for index, task in enumerate(tasks, start=1):
             if self._cancel_event.is_set():
@@ -126,6 +129,7 @@ class CompressWorker:
                     task.target_bytes,
                     output_path,
                     strip_exif=strip_exif,
+                    engine_preference=engine_preference,
                 )
                 if warning:
                     result.warning = warning
@@ -139,6 +143,7 @@ class CompressWorker:
                         "output_path": output_path,
                         "original_size": original_size,
                         "result": result,
+                        "engine_name": _engine_name,
                     }
                 )
                 success += 1

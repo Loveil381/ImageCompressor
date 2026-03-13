@@ -68,6 +68,24 @@ def format_scale(scale: float) -> str:
     return f"{scale * 100:.0f}%"
 
 
+def format_eta(elapsed: float, processed: int, total: int) -> str:
+    """Return human-readable ETA string, or ``''`` if not enough data.
+
+    Parameters
+    ----------
+    elapsed:
+        Seconds since the batch started.
+    processed:
+        Number of items already completed.
+    total:
+        Total number of items in the batch.
+    """
+    if elapsed <= 0 or processed <= 0 or total <= 0:
+        return ""
+    speed = processed / elapsed
+    remaining = (total - processed) / speed
+    return f" ({speed:.1f} 文件/秒，预计剩余 {remaining:.1f}秒)"
+
 # ---------------------------------------------------------------------------
 # Extension / format resolution
 # ---------------------------------------------------------------------------
@@ -106,7 +124,25 @@ def build_output_path(
     """Build the full output file path from source and config."""
     src = Path(src_path)
     directory = custom_dir if output_mode == CUSTOM_OUTPUT else str(src.parent)
-    return str(Path(directory) / f"{src.stem}_compressed{output_ext}")
+    target_dir = Path(directory).resolve()
+    if ".." in src.stem:
+        raise ValueError("Output path escapes target directory")
+    safe_stem = sanitize_filename(src.stem)
+    candidate = (target_dir / f"{safe_stem}_compressed{output_ext}").resolve()
+
+    try:
+        candidate.relative_to(target_dir)
+    except ValueError as exc:
+        raise ValueError("Output path escapes target directory") from exc
+
+    return str(candidate)
+
+
+def sanitize_filename(name: str) -> str:
+    """Return *name* with traversal and separator characters neutralised."""
+    sanitized = name.replace("..", "")
+    sanitized = sanitized.replace("/", "_").replace("\\", "_").replace("\0", "_")
+    return sanitized or "_"
 
 
 # ---------------------------------------------------------------------------
