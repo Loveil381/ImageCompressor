@@ -9,14 +9,14 @@ testable and keeps ``App._poll_worker`` under 15 lines.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Protocol
+from typing import Protocol
 
 from PIL import UnidentifiedImageError
 
 from ..core.utils import format_bytes, format_eta, format_scale
 from ..i18n.strings import T
-
 
 # ---------------------------------------------------------------------------
 # Protocols for the UI widgets we depend on (makes mocking easy)
@@ -136,10 +136,6 @@ class MessageHandler:
         out_name = Path(msg["output_path"]).name
         target_met = r.actual_size <= self._target_bytes
 
-        # Log engine name if provided
-        engine_name = msg.get("engine_name")
-        engine_note = f"  [engine: {engine_name}]" if engine_name else ""
-
         text = T(
             "log_ok" if target_met else "log_warn",
             name=msg["name"],
@@ -183,7 +179,7 @@ class MessageHandler:
         return True
 
     # Dispatch table
-    _DISPATCH: dict[str, Callable[["MessageHandler", dict], bool]] = {
+    _DISPATCH: dict[str, Callable[[MessageHandler, dict], bool]] = {
         "progress": _handle_progress,
         "result": _handle_result,
         "error": _handle_error,

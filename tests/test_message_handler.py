@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any
 
 import pytest
 
 from src.core.utils import format_eta
 from src.workers.message_handler import MessageHandler
-
 
 # ---------------------------------------------------------------------------
 # Mock widgets (satisfy Protocol interfaces)

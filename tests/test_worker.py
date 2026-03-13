@@ -12,7 +12,9 @@ from src.core.models import CompressionTask
 from src.workers.compress_worker import CompressWorker
 
 
-def _make_image(path: Path, size: tuple[int, int] = (800, 600), color: tuple[int, int, int] = (120, 180, 230)) -> str:
+def _make_image(
+    path: Path, size: tuple[int, int] = (800, 600), color: tuple[int, int, int] = (120, 180, 230)
+) -> str:
     image = Image.new("RGB", size, color)
     image.save(path, format="JPEG", quality=95)
     return str(path)

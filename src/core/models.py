@@ -37,8 +37,8 @@ class CompressionConfig:
     """User-configured settings for a compression batch."""
 
     target_size_str: str = "500KB"
-    format_choice: str = "original"   # "original" | ".jpg" | ".png" | ".webp"
-    output_mode: str = "same_dir"     # "same_dir" | "custom"
+    format_choice: str = "original"  # "original" | ".jpg" | ".png" | ".webp"
+    output_mode: str = "same_dir"  # "same_dir" | "custom"
     custom_dir: str = ""
     strip_exif: bool = False
     language: str = "zh"

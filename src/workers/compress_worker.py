@@ -30,10 +30,8 @@ Message protocol (dict payloads placed on the ``result_queue``)
 
 from __future__ import annotations
 
-import os
 import queue
 import threading
-from pathlib import Path
 
 from PIL import UnidentifiedImageError
 
@@ -116,12 +114,8 @@ class CompressWorker:
             )
 
             try:
-                output_ext, warning = resolve_output_extension(
-                    task.src_path, fmt_choice
-                )
-                output_path = build_output_path(
-                    task.src_path, output_ext, output_mode, custom_dir
-                )
+                output_ext, warning = resolve_output_extension(task.src_path, fmt_choice)
+                output_path = build_output_path(task.src_path, output_ext, output_mode, custom_dir)
                 original_size = get_file_size(task.src_path) or 0
 
                 result: CompressionResult = compress_image(

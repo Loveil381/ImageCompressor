@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import os
-import time
 import queue as _queue
 import threading
+import time
+from contextlib import suppress
 from pathlib import Path
 
 import ttkbootstrap as ttk
-from ttkbootstrap.dialogs import Messagebox
 from PIL import Image
+from ttkbootstrap.dialogs import Messagebox
 
 try:
     import pystray
@@ -22,16 +23,16 @@ from .core.config_manager import load_config, save_config
 from .core.models import CompressionTask
 from .core.utils import (
     CUSTOM_OUTPUT,
-    format_bytes,
-    parse_size,
     enable_high_dpi_awareness,
+    format_bytes,
     get_window_dpi,
+    parse_size,
 )
 from .i18n.strings import T, set_language
 from .ui.file_panel import FilePanel
 from .ui.log_panel import LogPanel
 from .ui.settings_panel import SettingsPanel
-from .ui.theme import APP_TITLE, APP_VERSION, FONT_RUN, FONT_DEFAULT
+from .ui.theme import APP_TITLE, APP_VERSION, FONT_DEFAULT
 from .workers.compress_worker import CompressWorker
 from .workers.message_handler import MessageHandler
 
@@ -104,7 +105,7 @@ class App(ttk.Window):
             image = _create_tray_icon_image()
             menu = pystray.Menu(
                 pystray.MenuItem("显示 (Show)", self._show_from_tray, default=True),
-                pystray.MenuItem("退出 (Quit)", self._quit_from_tray)
+                pystray.MenuItem("退出 (Quit)", self._quit_from_tray),
             )
             self._tray_icon = pystray.Icon("name", image, APP_TITLE, menu)
         if self._tray_running:
@@ -137,10 +138,8 @@ class App(ttk.Window):
     def _apply_scaling(self) -> None:
         dpi = get_window_dpi(self)
         self._scale = min(max(dpi / 96.0, 1.0), 1.35)
-        try:
+        with suppress(ttk.TclError):
             self.tk.call("tk", "scaling", dpi / 72.0)
-        except ttk.TclError:
-            pass
 
     def _px(self, v: int) -> int:
         return max(1, round(v * self._scale))
@@ -156,12 +155,13 @@ class App(ttk.Window):
         title_frame = ttk.Frame(self)
         title_frame.grid(row=0, column=0, sticky="ew", **pad)
         ttk.Label(
-            title_frame, text=APP_TITLE,
-            font=("Microsoft YaHei UI", 16, "bold"), bootstyle="inverse-dark"
+            title_frame,
+            text=APP_TITLE,
+            font=("Microsoft YaHei UI", 16, "bold"),
+            bootstyle="inverse-dark",
         ).pack(side="left")
         ttk.Label(
-            title_frame, text=f"v{APP_VERSION}",
-            font=FONT_DEFAULT, bootstyle="secondary"
+            title_frame, text=f"v{APP_VERSION}", font=FONT_DEFAULT, bootstyle="secondary"
         ).pack(side="left", padx=(8, 0), pady=(4, 0))
 
         self._file_panel = FilePanel(self, ui_scale=self._scale)
@@ -173,39 +173,29 @@ class App(ttk.Window):
         btn_frame = ttk.Frame(self)
         btn_frame.grid(row=3, column=0, pady=(self._px(6), self._px(4)))
         self._run_btn = ttk.Button(
-            btn_frame, text=T("start"), command=self._on_start,
-            bootstyle="success", width=14
+            btn_frame, text=T("start"), command=self._on_start, bootstyle="success", width=14
         )
         self._run_btn.pack(side="left", padx=(0, self._px(8)))
         self._preview_btn = ttk.Button(
-            btn_frame, text="对比预览 (选定)", command=self._on_preview,
-            bootstyle="info", width=16
+            btn_frame, text="对比预览 (选定)", command=self._on_preview, bootstyle="info", width=16
         )
         self._preview_btn.pack(side="left", padx=(0, self._px(8)))
         self._cancel_btn = ttk.Button(
-            btn_frame, text=T("cancel"), command=self._on_cancel,
-            bootstyle="danger", width=8
+            btn_frame, text=T("cancel"), command=self._on_cancel, bootstyle="danger", width=8
         )
         self._cancel_btn.configure(state="disabled")
         self._cancel_btn.pack(side="left")
 
         self._progress = ttk.Progressbar(self, mode="determinate")
-        self._progress.grid(
-            row=4, column=0, sticky="ew",
-            padx=self._px(12), pady=(0, self._px(4))
-        )
+        self._progress.grid(row=4, column=0, sticky="ew", padx=self._px(12), pady=(0, self._px(4)))
 
         self._log = LogPanel(self, height=9)
         self._log.grid(row=5, column=0, sticky="ew", **pad)
 
         self._status = ttk.Label(
-            self, text=T("status_ready"),
-            font=FONT_DEFAULT, bootstyle="inverse-dark"
+            self, text=T("status_ready"), font=FONT_DEFAULT, bootstyle="inverse-dark"
         )
-        self._status.grid(
-            row=6, column=0, sticky="ew",
-            padx=self._px(12), pady=(0, self._px(6))
-        )
+        self._status.grid(row=6, column=0, sticky="ew", padx=self._px(12), pady=(0, self._px(6)))
 
     # ------------------------------------------------------------------
     # Window helpers
@@ -233,9 +223,7 @@ class App(ttk.Window):
         try:
             target_bytes = parse_size(size_str)
         except ValueError as exc:
-            Messagebox.show_error(
-                T("err_invalid_size", detail=str(exc)), T("dlg_title")
-            )
+            Messagebox.show_error(T("err_invalid_size", detail=str(exc)), T("dlg_title"))
             return
         if target_bytes <= 0:
             Messagebox.show_error(T("err_zero_size"), T("dlg_title"))
@@ -243,15 +231,12 @@ class App(ttk.Window):
 
         output_mode = self._settings.out_var.get()
         custom_dir = self._settings.custom_dir_var.get().strip()
-        if output_mode == CUSTOM_OUTPUT and (
-            not custom_dir or not os.path.isdir(custom_dir)
-        ):
+        if output_mode == CUSTOM_OUTPUT and (not custom_dir or not os.path.isdir(custom_dir)):
             Messagebox.show_error(T("err_invalid_dir"), T("dlg_title"))
             return
 
         tasks = [
-            CompressionTask(src_path=p, target_bytes=target_bytes, output_path="")
-            for p in files
+            CompressionTask(src_path=p, target_bytes=target_bytes, output_path="") for p in files
         ]
 
         self._set_running(True)
@@ -259,9 +244,7 @@ class App(ttk.Window):
         self._progress.configure(maximum=len(tasks), value=0)
         self._log.append_info(T("log_sep"))
         engine_preference = self._settings.engine_preference_var.get()
-        self._log.append_info(
-            f"[{T('log_engine', engine=get_engine_name(engine_preference))}]"
-        )
+        self._log.append_info(f"[{T('log_engine', engine=get_engine_name(engine_preference))}]")
         self._log.append_info(T("log_target", sz=format_bytes(target_bytes)))
         self._log.append_info(T("log_count", n=len(tasks)))
         self._log.append_info(T("log_sep"))
@@ -290,24 +273,23 @@ class App(ttk.Window):
     def _on_preview(self) -> None:
         sel = self._file_panel._listbox.curselection()
         if not sel:
-            Messagebox.show_warning(
-                "请在上面的列表中选中一张要预览的图片。", T("dlg_title")
-            )
+            Messagebox.show_warning("请在上面的列表中选中一张要预览的图片。", T("dlg_title"))
             return
         src_path = self._file_panel.files[sel[0]]
         fmt_choice = self._settings.fmt_var.get()
         out_mode = self._settings.out_var.get()
         custom_dir = self._settings.custom_dir_var.get().strip()
-        from .core.utils import resolve_output_extension, build_output_path
+        from .core.utils import build_output_path, resolve_output_extension
+
         ext, _ = resolve_output_extension(src_path, fmt_choice)
         out_path = build_output_path(src_path, ext, out_mode, custom_dir)
         if not os.path.exists(out_path):
             Messagebox.show_warning(
-                f"尚未生成压缩后文件，或者已被删除。\n预期路径：\n{out_path}",
-                T("dlg_title")
+                f"尚未生成压缩后文件，或者已被删除。\n预期路径：\n{out_path}", T("dlg_title")
             )
             return
         from .ui.preview_window import PreviewWindow
+
         PreviewWindow(self, src_path, out_path)
 
     def _on_cancel(self) -> None:
@@ -333,9 +315,7 @@ class App(ttk.Window):
 
     def _on_batch_complete(self, ok: int, fail: int) -> None:
         self._set_running(False)
-        Messagebox.show_info(
-            T("status_done", ok=ok, fail=fail), T("dlg_done_title")
-        )
+        Messagebox.show_info(T("status_done", ok=ok, fail=fail), T("dlg_done_title"))
 
     def _on_batch_cancel(self) -> None:
         self._set_running(False)

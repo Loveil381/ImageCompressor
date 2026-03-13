@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.core.models import BatchResult, CompressionConfig, CompressionResult, CompressionTask
+from src.core.models import BatchResult, CompressionResult, CompressionTask
 
 
 class TestCompressionTask:

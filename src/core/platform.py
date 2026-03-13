@@ -6,6 +6,7 @@ import logging
 import os
 import subprocess
 import sys
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ def open_directory(path: str) -> None:
 def _open_path(path: str) -> None:
     if sys.platform.startswith("win"):
         try:
-            os.startfile(path)  # type: ignore[attr-defined]
+            cast(Any, os).startfile(path)
         except (AttributeError, OSError) as exc:
             logger.warning("Failed to open path on Windows: %s", exc)
         return

@@ -21,7 +21,6 @@ from src.core.utils import (
     sanitize_filename,
 )
 
-
 # ---------------------------------------------------------------------------
 # parse_size
 # ---------------------------------------------------------------------------
@@ -83,7 +82,7 @@ class TestFormatBytes:
         assert "MB" in format_bytes(1024 * 1024)
 
     def test_gigabytes(self) -> None:
-        assert "GB" in format_bytes(1024 ** 3)
+        assert "GB" in format_bytes(1024**3)
 
 
 # ---------------------------------------------------------------------------
@@ -198,10 +197,14 @@ class TestFileAndDpiHelpers:
     def test_get_file_size_returns_none_for_missing_file(self) -> None:
         assert get_file_size("missing-file.jpg") is None
 
-    def test_enable_high_dpi_awareness_noops_on_non_windows(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_enable_high_dpi_awareness_noops_on_non_windows(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr("src.core.utils.os.name", "posix")
         enable_high_dpi_awareness()
 
-    def test_get_window_dpi_returns_default_on_non_windows(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_get_window_dpi_returns_default_on_non_windows(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr("src.core.utils.os.name", "posix")
         assert get_window_dpi(object()) == 96.0

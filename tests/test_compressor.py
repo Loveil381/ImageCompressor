@@ -8,17 +8,14 @@ Covers:
 
 from __future__ import annotations
 
-import importlib
-import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 from PIL import Image
 
 from src.core.compressor import compress_image
 from src.core.utils import format_bytes
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -113,7 +110,7 @@ class TestJpegCompression:
         src = _save_test_image(tmp_path, "rgba.png", img)
         out = str(tmp_path / "rgba_out.jpg")
 
-        result = compress_image(src, 100_000, out)
+        compress_image(src, 100_000, out)
 
         assert Path(out).exists()
         with Image.open(out) as saved:
@@ -271,7 +268,9 @@ class TestEngineFallback:
         comp_module._engine_instance = None
 
         # Mock the vips_engine import to raise ImportError
-        original_import = __builtins__.__import__ if hasattr(__builtins__, '__import__') else __import__
+        original_import = (
+            __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
+        )
 
         def mock_import(name, *args, **kwargs):
             if "vips_engine" in name:
@@ -285,12 +284,14 @@ class TestEngineFallback:
                 # Directly test the fallback by trying vips import
                 try:
                     from src.core.engines.vips_engine import VipsEngine
+
                     # pyvips is actually installed – test that VipsEngine works
                     engine = VipsEngine()
                     assert engine.name == "vips"
                 except ImportError:
                     # pyvips is not installed – test that PillowEngine works
                     from src.core.engines.pillow_engine import PillowEngine
+
                     engine = PillowEngine()
                     assert engine.name == "pillow"
             finally:
@@ -299,6 +300,7 @@ class TestEngineFallback:
     def test_engine_name_is_string(self) -> None:
         """The selected engine should have a valid name."""
         import src.core.compressor as comp_module
+
         comp_module._engine_instance = None
         assert comp_module.get_engine_name() in ("vips", "pillow")
         comp_module._engine_instance = None
@@ -427,6 +429,7 @@ class TestEncodeCountBudget:
 
         # Patch the engine so compressor uses our counting wrapper
         import src.core.compressor as comp_module
+
         old_engine = comp_module._engine_instance
         comp_module._engine_instance = engine
         try:
@@ -435,9 +438,7 @@ class TestEncodeCountBudget:
         finally:
             comp_module._engine_instance = old_engine
 
-        assert call_count <= 56, (
-            f"Lossy encode was called {call_count} times (budget: 56)"
-        )
+        assert call_count <= 56, f"Lossy encode was called {call_count} times (budget: 56)"
 
     def test_png_encode_count_within_budget(self, tmp_path: Path) -> None:
         """PNG compression should use ≤ 48 encode calls."""
@@ -459,6 +460,7 @@ class TestEncodeCountBudget:
         engine.encode_png = counting_encode  # type: ignore[assignment]
 
         import src.core.compressor as comp_module
+
         old_engine = comp_module._engine_instance
         comp_module._engine_instance = engine
         try:
@@ -466,9 +468,7 @@ class TestEncodeCountBudget:
         finally:
             comp_module._engine_instance = old_engine
 
-        assert call_count <= 48, (
-            f"PNG encode was called {call_count} times (budget: 48)"
-        )
+        assert call_count <= 48, f"PNG encode was called {call_count} times (budget: 48)"
 
 
 # ---------------------------------------------------------------------------
@@ -480,6 +480,7 @@ class TestCompressImageSignature:
     def test_accepts_documented_parameters(self, tmp_path: Path) -> None:
         """compress_image must accept the documented positional and keyword args."""
         import inspect
+
         from src.core.compressor import compress_image
 
         sig = inspect.signature(compress_image)

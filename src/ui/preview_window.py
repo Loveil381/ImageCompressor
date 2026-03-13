@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
-import os
 import tkinter as tk
 from pathlib import Path
 
 import ttkbootstrap as ttk
-from PIL import Image, ImageTk, ImageOps
+from PIL import Image, ImageOps, ImageTk
 
 from ..core.utils import format_bytes, get_file_size
 
 
 class PreviewWindow(ttk.Toplevel):
-    def __init__(self, parent: ttk.Widget, original_path: str, compressed_path: str, engine_name: str | None = None) -> None:
+    def __init__(
+        self,
+        parent: ttk.Widget,
+        original_path: str,
+        compressed_path: str,
+        engine_name: str | None = None,
+    ) -> None:
         super().__init__(parent)
         self.title("预览对比 Preview")
         self.geometry("900x600")
@@ -62,8 +67,22 @@ class PreviewWindow(ttk.Toplevel):
         # Mode switch
         mode_frame = ttk.Frame(top_frame)
         mode_frame.pack(side="top", pady=(0, 10))
-        ttk.Radiobutton(mode_frame, text="滑动对比", variable=self.mode_var, value="slider", command=self._on_mode_change, bootstyle="toolbutton").pack(side="left", padx=5)
-        ttk.Radiobutton(mode_frame, text="并排对比", variable=self.mode_var, value="side_by_side", command=self._on_mode_change, bootstyle="toolbutton").pack(side="left", padx=5)
+        ttk.Radiobutton(
+            mode_frame,
+            text="滑动对比",
+            variable=self.mode_var,
+            value="slider",
+            command=self._on_mode_change,
+            bootstyle="toolbutton",
+        ).pack(side="left", padx=5)
+        ttk.Radiobutton(
+            mode_frame,
+            text="并排对比",
+            variable=self.mode_var,
+            value="side_by_side",
+            command=self._on_mode_change,
+            bootstyle="toolbutton",
+        ).pack(side="left", padx=5)
 
         # Headers frame
         header_frame = ttk.Frame(top_frame)
@@ -71,13 +90,19 @@ class PreviewWindow(ttk.Toplevel):
         header_frame.columnconfigure(0, weight=1)
         header_frame.columnconfigure(1, weight=1)
 
-        orig_header = ttk.Label(header_frame, text=f"原图 Original - {Path(self.original_path).name} ({format_bytes(orig_size)})", font=("", 10, "bold"))
+        orig_header = ttk.Label(
+            header_frame,
+            text=f"原图 Original - {Path(self.original_path).name} ({format_bytes(orig_size)})",
+            font=("", 10, "bold"),
+        )
         orig_header.grid(row=0, column=0)
 
         comp_text = f"压缩后 Compressed - {Path(self.compressed_path).name} ({format_bytes(comp_size)} | {ratio:.1f}%)"
         if self.engine_name:
             comp_text += f" [{self.engine_name}]"
-        comp_header = ttk.Label(header_frame, text=comp_text, font=("", 10, "bold"), bootstyle="success")
+        comp_header = ttk.Label(
+            header_frame, text=comp_text, font=("", 10, "bold"), bootstyle="success"
+        )
         comp_header.grid(row=0, column=1)
 
         # Main canvas frame
@@ -110,7 +135,7 @@ class PreviewWindow(ttk.Toplevel):
             self.canvas_slider.pack_forget()
             self.canvas_orig.pack(side="left", fill="both", expand=True, padx=(0, 5))
             self.canvas_comp.pack(side="left", fill="both", expand=True, padx=(5, 0))
-        
+
         # Trigger redraw
         if hasattr(self, "_resize_job"):
             self.after_cancel(self._resize_job)
@@ -120,12 +145,12 @@ class PreviewWindow(ttk.Toplevel):
         if self.mode_var.get() == "slider":
             w = self.canvas_slider.winfo_width()
             h = self.canvas_slider.winfo_height()
-            if w <= 0 or h <= 0 or not hasattr(self, '_display_orig'):
+            if w <= 0 or h <= 0 or not hasattr(self, "_display_orig"):
                 return
-                
+
             img_w, img_h = self._get_scaled_size(self._display_orig, w, h)
             img_x_start = w // 2 - img_w // 2
-            
+
             # Map event X to image coordinates
             if img_w > 0:
                 slider_pos = (event.x - img_x_start) / img_w
@@ -133,7 +158,7 @@ class PreviewWindow(ttk.Toplevel):
                 self._draw_slider()
 
     def _on_resize(self, event: tk.Event) -> None:  # type: ignore[type-arg]
-        # Ignore resize events not triggering from main toplevel bounds if needed, 
+        # Ignore resize events not triggering from main toplevel bounds if needed,
         # but typical to debounce all
         if hasattr(self, "_resize_job"):
             self.after_cancel(self._resize_job)
@@ -147,9 +172,9 @@ class PreviewWindow(ttk.Toplevel):
         return max(1, int(img_w * scale)), max(1, int(img_h * scale))
 
     def _redraw_images(self) -> None:
-        if not hasattr(self, '_display_orig') or not hasattr(self, '_display_comp'):
+        if not hasattr(self, "_display_orig") or not hasattr(self, "_display_comp"):
             return
-            
+
         if self.mode_var.get() == "slider":
             self._draw_slider()
         else:
@@ -160,7 +185,7 @@ class PreviewWindow(ttk.Toplevel):
         h = max(10, self.canvas_slider.winfo_height())
 
         new_w, new_h = self._get_scaled_size(self._display_orig, w, h)
-        
+
         # Resize display images to canvas fit
         resized_orig = self._display_orig.resize((new_w, new_h), Image.Resampling.LANCZOS)
         resized_comp = self._display_comp.resize((new_w, new_h), Image.Resampling.LANCZOS)
@@ -175,7 +200,7 @@ class PreviewWindow(ttk.Toplevel):
         if separator_x > 0:
             crop_orig = resized_orig.crop((0, 0, separator_x, new_h))
             base_img.paste(crop_orig, (0, 0))
-        
+
         # Right part (Compressed)
         if separator_x < new_w:
             crop_comp = resized_comp.crop((separator_x, 0, new_w, new_h))
@@ -183,11 +208,11 @@ class PreviewWindow(ttk.Toplevel):
 
         self._photo_slider = ImageTk.PhotoImage(base_img)
         self.canvas_slider.delete("all")
-        
+
         # Center the image on canvas
         img_x = w // 2
         img_y = h // 2
-        
+
         self.canvas_slider.create_image(img_x, img_y, image=self._photo_slider, anchor="center")
 
         # Draw separator line
@@ -197,20 +222,40 @@ class PreviewWindow(ttk.Toplevel):
         line_bottom = img_y + new_h // 2
 
         self.canvas_slider.create_line(line_x, line_top, line_x, line_bottom, fill="white", width=2)
-        
+
         # Draw central handle
         handle_y = h // 2
         r = 6
-        self.canvas_slider.create_oval(line_x - r, handle_y - r, line_x + r, handle_y + r, fill="white", outline="#333333")
+        self.canvas_slider.create_oval(
+            line_x - r, handle_y - r, line_x + r, handle_y + r, fill="white", outline="#333333"
+        )
         # Left arrow
-        self.canvas_slider.create_polygon(line_x - 3, handle_y, line_x - 1, handle_y - 3, line_x - 1, handle_y + 3, fill="#333333", outline="")
+        self.canvas_slider.create_polygon(
+            line_x - 3,
+            handle_y,
+            line_x - 1,
+            handle_y - 3,
+            line_x - 1,
+            handle_y + 3,
+            fill="#333333",
+            outline="",
+        )
         # Right arrow
-        self.canvas_slider.create_polygon(line_x + 3, handle_y, line_x + 1, handle_y - 3, line_x + 1, handle_y + 3, fill="#333333", outline="")
+        self.canvas_slider.create_polygon(
+            line_x + 3,
+            handle_y,
+            line_x + 1,
+            handle_y - 3,
+            line_x + 1,
+            handle_y + 3,
+            fill="#333333",
+            outline="",
+        )
 
     def _draw_side_by_side(self) -> None:
         w_orig = max(10, self.canvas_orig.winfo_width())
         h_orig = max(10, self.canvas_orig.winfo_height())
-        
+
         w_comp = max(10, self.canvas_comp.winfo_width())
         h_comp = max(10, self.canvas_comp.winfo_height())
 
@@ -226,7 +271,9 @@ class PreviewWindow(ttk.Toplevel):
         self.canvas_orig.delete("all")
         self.canvas_comp.delete("all")
 
-        self.canvas_orig.create_image(w_orig // 2, h_orig // 2, image=self._photo_orig, anchor="center")
-        self.canvas_comp.create_image(w_comp // 2, h_comp // 2, image=self._photo_comp, anchor="center")
-
-
+        self.canvas_orig.create_image(
+            w_orig // 2, h_orig // 2, image=self._photo_orig, anchor="center"
+        )
+        self.canvas_comp.create_image(
+            w_comp // 2, h_comp // 2, image=self._photo_comp, anchor="center"
+        )

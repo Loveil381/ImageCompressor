@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import tkinter as tk
+
 import ttkbootstrap as ttk
 
 from ..i18n.strings import T
-from .theme import FONT_DEFAULT, FONT_MONO_SM
+from .theme import FONT_MONO_SM
 
 
 class LogPanel(ttk.Frame):

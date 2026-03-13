@@ -22,8 +22,8 @@ All public functions are stateless and thread-safe.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from .engines.base import CompressionEngine
 from .models import CompressionResult
@@ -119,11 +119,20 @@ def compress_image(
 
     if save_format == "PNG":
         return _compress_png(
-            engine, src_path, target_bytes, output_path, output_ext,
+            engine,
+            src_path,
+            target_bytes,
+            output_path,
+            output_ext,
             strip_exif=strip_exif,
         )
     return _compress_lossy(
-        engine, src_path, target_bytes, output_path, save_format, output_ext,
+        engine,
+        src_path,
+        target_bytes,
+        output_path,
+        save_format,
+        output_ext,
         strip_exif=strip_exif,
     )
 
@@ -155,7 +164,12 @@ def _compress_lossy(
 
     # Step 1: Try scale=1.0, binary-search quality 5–95
     fit = _find_best_quality(
-        engine, src_path, 1.0, target_bytes, save_format, strip_exif=strip_exif,
+        engine,
+        src_path,
+        1.0,
+        target_bytes,
+        save_format,
+        strip_exif=strip_exif,
     )
     if fit is not None:
         payload, quality = fit
@@ -180,7 +194,11 @@ def _compress_lossy(
 
         # Fast reject: if quality=5 still > target × 2, skip to smaller scale
         worst = engine.encode_lossy(
-            src_path, mid_s, 5, save_format, strip_exif=strip_exif,
+            src_path,
+            mid_s,
+            5,
+            save_format,
+            strip_exif=strip_exif,
         )
         if len(worst) > target_bytes * 2:
             if smallest_result is None or len(worst) < smallest_result.actual_size:
@@ -197,7 +215,11 @@ def _compress_lossy(
             continue
 
         fit = _find_best_quality(
-            engine, src_path, mid_s, target_bytes, save_format,
+            engine,
+            src_path,
+            mid_s,
+            target_bytes,
+            save_format,
             strip_exif=strip_exif,
         )
         if fit is not None:
@@ -266,7 +288,11 @@ def _find_best_quality(
     while lo <= hi:
         mid = (lo + hi) // 2
         payload = engine.encode_lossy(
-            src_path, scale, mid, save_format, strip_exif=strip_exif,
+            src_path,
+            scale,
+            mid,
+            save_format,
+            strip_exif=strip_exif,
         )
         if len(payload) <= target_bytes:
             best_payload = payload
@@ -302,7 +328,11 @@ def _compress_png(
 
     # Step 1: Try scale=1.0, iterate colors
     fit = _find_best_png_colors(
-        engine, src_path, 1.0, target_bytes, strip_exif=strip_exif,
+        engine,
+        src_path,
+        1.0,
+        target_bytes,
+        strip_exif=strip_exif,
     )
     if fit is not None:
         payload, colors = fit
@@ -326,7 +356,11 @@ def _compress_png(
         mid_s = round((lo_s + hi_s) / 2, 4)
 
         fit = _find_best_png_colors(
-            engine, src_path, mid_s, target_bytes, strip_exif=strip_exif,
+            engine,
+            src_path,
+            mid_s,
+            target_bytes,
+            strip_exif=strip_exif,
         )
         if fit is not None:
             payload, colors = fit
@@ -344,7 +378,10 @@ def _compress_png(
         else:
             # Track the most-aggressive attempt (colors=16) as fallback
             worst = engine.encode_png(
-                src_path, mid_s, 16, strip_exif=strip_exif,
+                src_path,
+                mid_s,
+                16,
+                strip_exif=strip_exif,
             )
             if smallest_result is None or len(worst) < smallest_result.actual_size:
                 smallest_payload = worst
@@ -380,7 +417,10 @@ def _find_best_png_colors(
     """
     for colors in _PNG_COLORS:
         payload = engine.encode_png(
-            src_path, scale, colors, strip_exif=strip_exif,
+            src_path,
+            scale,
+            colors,
+            strip_exif=strip_exif,
         )
         if len(payload) <= target_bytes:
             return payload, colors

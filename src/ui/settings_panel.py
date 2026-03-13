@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import filedialog
+
 import ttkbootstrap as ttk
 
 from ..core.models import CompressionConfig
@@ -31,7 +32,7 @@ class SettingsPanel(ttk.Frame):
         if self._has_vips():
             self._engine_choices.insert(1, (T("engine_pref_vips"), "vips"))
 
-        self._engine_label_to_value = {label: value for label, value in self._engine_choices}
+        self._engine_label_to_value = dict(self._engine_choices)
         self._engine_value_to_label = {value: label for label, value in self._engine_choices}
         self._engine_display_var = ttk.StringVar(
             value=self._engine_value_to_label.get("auto", self._engine_choices[0][0])
@@ -51,9 +52,9 @@ class SettingsPanel(ttk.Frame):
         row_size.grid(row=0, column=0, sticky="w", pady=(2, 4), padx=6)
 
         ttk.Label(row_size, text=T("label_target_size")).pack(side="left")
-        ttk.Entry(
-            row_size, textvariable=self.size_var, width=14, font=FONT_MONO
-        ).pack(side="left", padx=(4, 8))
+        ttk.Entry(row_size, textvariable=self.size_var, width=14, font=FONT_MONO).pack(
+            side="left", padx=(4, 8)
+        )
         ttk.Label(row_size, text=T("size_hint"), bootstyle="secondary").pack(side="left")
 
         # --- Format row ---
@@ -69,9 +70,9 @@ class SettingsPanel(ttk.Frame):
             ("WebP", ".webp"),
         ):
             display = label_key if label_key in ("JPEG", "PNG", "WebP") else T(label_key)
-            ttk.Radiobutton(
-                row_fmt, text=display, variable=self.fmt_var, value=value
-            ).pack(side="left", padx=6)
+            ttk.Radiobutton(row_fmt, text=display, variable=self.fmt_var, value=value).pack(
+                side="left", padx=6
+            )
 
         # --- Output row ---
         row_out = ttk.Frame(card)
@@ -80,13 +81,19 @@ class SettingsPanel(ttk.Frame):
         ttk.Label(row_out, text=T("label_output")).pack(side="left")
 
         ttk.Radiobutton(
-            row_out, text=T("output_same_dir"), variable=self.out_var,
-            value="same_dir", command=self._sync_output_controls
+            row_out,
+            text=T("output_same_dir"),
+            variable=self.out_var,
+            value="same_dir",
+            command=self._sync_output_controls,
         ).pack(side="left", padx=(0, 6))
 
         ttk.Radiobutton(
-            row_out, text=T("output_custom_dir"), variable=self.out_var,
-            value=CUSTOM_OUTPUT, command=self._sync_output_controls
+            row_out,
+            text=T("output_custom_dir"),
+            variable=self.out_var,
+            value=CUSTOM_OUTPUT,
+            command=self._sync_output_controls,
         ).pack(side="left", padx=(0, 4))
 
         self._custom_entry = ttk.Entry(
@@ -95,8 +102,7 @@ class SettingsPanel(ttk.Frame):
         self._custom_entry.pack(side="left", padx=(0, 4))
 
         self._browse_btn = ttk.Button(
-            row_out, text=T("browse"), command=self._browse_output,
-            bootstyle="secondary", width=6
+            row_out, text=T("browse"), command=self._browse_output, bootstyle="secondary", width=6
         )
         self._browse_btn.pack(side="left")
 
@@ -105,8 +111,7 @@ class SettingsPanel(ttk.Frame):
         row_exif.grid(row=3, column=0, sticky="w", pady=(4, 4), padx=6)
 
         ttk.Checkbutton(
-            row_exif, text=T("strip_exif"), variable=self.strip_exif_var,
-            bootstyle="round-toggle"
+            row_exif, text=T("strip_exif"), variable=self.strip_exif_var, bootstyle="round-toggle"
         ).pack(side="left")
 
         # --- Engine preference row ---
@@ -138,8 +143,12 @@ class SettingsPanel(ttk.Frame):
 
     def set_enabled(self, enabled: bool) -> None:
         state = "normal" if enabled else "disabled"
-        self._custom_entry.configure(state=state if self.out_var.get() == CUSTOM_OUTPUT else "disabled")
-        self._browse_btn.configure(state=state if self.out_var.get() == CUSTOM_OUTPUT else "disabled")
+        self._custom_entry.configure(
+            state=state if self.out_var.get() == CUSTOM_OUTPUT else "disabled"
+        )
+        self._browse_btn.configure(
+            state=state if self.out_var.get() == CUSTOM_OUTPUT else "disabled"
+        )
         self._engine_combo.configure(state="readonly" if enabled else "disabled")
 
     def apply_config(self, config: CompressionConfig) -> None:
@@ -148,11 +157,17 @@ class SettingsPanel(ttk.Frame):
         self.out_var.set(config.output_mode)
         self.custom_dir_var.set(config.custom_dir)
         self.strip_exif_var.set(config.strip_exif)
-        pref = config.engine_preference if config.engine_preference in self._engine_value_to_label else "auto"
+        pref = (
+            config.engine_preference
+            if config.engine_preference in self._engine_value_to_label
+            else "auto"
+        )
         if pref == "vips" and not self._has_vips():
             pref = "auto"
         self.engine_preference_var.set(pref)
-        self._engine_display_var.set(self._engine_value_to_label.get(pref, self._engine_choices[0][0]))
+        self._engine_display_var.set(
+            self._engine_value_to_label.get(pref, self._engine_choices[0][0])
+        )
         self._sync_output_controls()
 
     def get_config(self) -> CompressionConfig:

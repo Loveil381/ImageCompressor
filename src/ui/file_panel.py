@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import os
 import tkinter as tk
+from contextlib import suppress
 from pathlib import Path
-from tkinter import filedialog, Menu
+from tkinter import Menu, filedialog
 
 import ttkbootstrap as ttk
 
@@ -14,7 +15,7 @@ from ..core.utils import SUPPORTED_INPUT_TYPES, format_bytes, get_file_size
 from ..i18n.strings import T
 from .theme import FONT_DEFAULT, FONT_MONO_SM
 
-_IMAGE_EXTS = frozenset(".jpg .jpeg .png .webp .bmp .gif .tif .tiff".split())
+_IMAGE_EXTS = frozenset([".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff"])
 
 
 def _collect_images_from_path(path: str) -> list[str]:
@@ -79,18 +80,18 @@ class FilePanel(ttk.Frame):
         btn_row.grid(row=1, column=0, sticky="w", pady=(4, 0))
 
         px = self._px(6)
-        ttk.Button(
-            btn_row, text=T("add_files"), command=self._add_files, bootstyle="primary"
-        ).pack(side="left", padx=(0, px))
+        ttk.Button(btn_row, text=T("add_files"), command=self._add_files, bootstyle="primary").pack(
+            side="left", padx=(0, px)
+        )
         ttk.Button(
             btn_row, text=T("add_folder"), command=self._add_folder, bootstyle="secondary"
         ).pack(side="left", padx=(0, px))
-        
+
         self._remove_btn = ttk.Button(
             btn_row, text=T("remove_selected"), command=self._remove_selected, bootstyle="secondary"
         )
         self._remove_btn.pack(side="left", padx=(0, px))
-        
+
         self._clear_btn = ttk.Button(
             btn_row, text=T("clear_list"), command=self._clear_files, bootstyle="danger"
         )
@@ -101,6 +102,7 @@ class FilePanel(ttk.Frame):
     def _setup_dnd(self, target: ttk.Widget) -> None:
         try:
             from tkinterdnd2 import DND_FILES  # type: ignore[import]
+
             for widget in (target, self._listbox, self._drop_label):
                 widget.drop_target_register(DND_FILES)  # type: ignore[attr-defined]
                 widget.dnd_bind("<<Drop>>", self._on_drop)  # type: ignore[attr-defined]
@@ -129,10 +131,8 @@ class FilePanel(ttk.Frame):
         for child in self.winfo_children():
             if isinstance(child, ttk.Frame):
                 for btn in child.winfo_children():
-                    try:
+                    with suppress(tk.TclError):
                         btn.configure(state=state)  # type: ignore[call-arg]
-                    except tk.TclError:
-                        pass
 
     # ------------------------------------------------------------------
     # Event handlers
@@ -156,9 +156,9 @@ class FilePanel(ttk.Frame):
     def _on_right_click(self, event: tk.Event) -> None:  # type: ignore[type-arg]
         # Select the item under cursor if not already selected
         idx = self._listbox.nearest(event.y)
-        if getattr(self._listbox, "size")() == 0:
+        if self._listbox.size() == 0:
             return
-        if getattr(self._listbox, "bbox")(idx):
+        if self._listbox.bbox(idx):
             if idx not in self._listbox.curselection():
                 self._listbox.selection_clear(0, "end")
                 self._listbox.selection_set(idx)

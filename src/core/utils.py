@@ -6,6 +6,7 @@ import ctypes
 import os
 import re
 from pathlib import Path
+from typing import Any, cast
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -86,14 +87,13 @@ def format_eta(elapsed: float, processed: int, total: int) -> str:
     remaining = (total - processed) / speed
     return f" ({speed:.1f} 文件/秒，预计剩余 {remaining:.1f}秒)"
 
+
 # ---------------------------------------------------------------------------
 # Extension / format resolution
 # ---------------------------------------------------------------------------
 
 
-def resolve_output_extension(
-    src_path: str, fmt_choice: str
-) -> tuple[str, str | None]:
+def resolve_output_extension(src_path: str, fmt_choice: str) -> tuple[str, str | None]:
     """Return *(output_extension, warning_or_None)* for a given source path.
 
     If *fmt_choice* is ``ORIGINAL_FORMAT`` and the source format has no
@@ -108,10 +108,7 @@ def resolve_output_extension(
         return source_ext, None
 
     fallback_ext = FALLBACK_EXTENSIONS.get(source_ext, ".jpg")
-    warning = (
-        f"原格式 {source_ext or '(无扩展名)'} 不支持直接输出，"
-        f"已自动改为 {fallback_ext}"
-    )
+    warning = f"原格式 {source_ext or '(无扩展名)'} 不支持直接输出，已自动改为 {fallback_ext}"
     return fallback_ext, warning
 
 
@@ -175,12 +172,11 @@ def enable_high_dpi_awareness() -> None:
     if os.name != "nt":
         return
 
+    windll = cast(Any, ctypes.windll)
     for call in [
-        lambda: ctypes.windll.user32.SetProcessDpiAwarenessContext(  # type: ignore[attr-defined]
-            ctypes.c_void_p(-4)
-        ),
-        lambda: ctypes.windll.shcore.SetProcessDpiAwareness(2),  # type: ignore[attr-defined]
-        lambda: ctypes.windll.user32.SetProcessDPIAware(),  # type: ignore[attr-defined]
+        lambda: windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)),
+        lambda: windll.shcore.SetProcessDpiAwareness(2),
+        lambda: windll.user32.SetProcessDPIAware(),
     ]:
         try:
             call()
@@ -197,6 +193,7 @@ def get_window_dpi(window: object) -> float:
         import tkinter as tk
 
         assert isinstance(window, tk.Misc)
-        return float(ctypes.windll.user32.GetDpiForWindow(window.winfo_id()))  # type: ignore[attr-defined]
+        windll = cast(Any, ctypes.windll)
+        return float(windll.user32.GetDpiForWindow(window.winfo_id()))
     except Exception:
         return 96.0

@@ -19,7 +19,9 @@ except ImportError:
     HAS_VIPS = False
 
 
-def _save_image(tmp_path: Path, filename: str, image: Image.Image, *, format_name: str | None = None) -> str:
+def _save_image(
+    tmp_path: Path, filename: str, image: Image.Image, *, format_name: str | None = None
+) -> str:
     path = tmp_path / filename
     image.save(path, format=format_name)
     return str(path)
@@ -123,7 +125,9 @@ class TestVipsEngine:
     def test_encode_lossy_returns_jpeg_bytes(self, tmp_path: Path) -> None:
         from src.core.engines.vips_engine import VipsEngine
 
-        src = _save_image(tmp_path, "source.png", Image.new("RGBA", (400, 300), (200, 100, 20, 180)))
+        src = _save_image(
+            tmp_path, "source.png", Image.new("RGBA", (400, 300), (200, 100, 20, 180))
+        )
         data = VipsEngine().encode_lossy(src, 1.0, 80, "JPEG")
 
         out = tmp_path / "vips_lossy.jpg"
@@ -151,7 +155,9 @@ class TestVipsEngine:
     def test_both_engines_meet_target_size_for_same_input(self, tmp_path: Path) -> None:
         from src.core.engines.vips_engine import VipsEngine
 
-        src = _save_image(tmp_path, "shared_source.jpg", _make_gradient((900, 700)), format_name="JPEG")
+        src = _save_image(
+            tmp_path, "shared_source.jpg", _make_gradient((900, 700)), format_name="JPEG"
+        )
         target = 70_000
         original_engine = compressor._engine_instance
 

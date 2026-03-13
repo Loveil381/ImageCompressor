@@ -8,7 +8,7 @@ implementation.
 from __future__ import annotations
 
 import io
-from functools import lru_cache
+from typing import Any, cast
 
 from PIL import Image, ImageOps
 
@@ -23,6 +23,7 @@ try:
 except AttributeError:  # Pillow < 9
     RESAMPLE_LANCZOS = Image.LANCZOS  # type: ignore[attr-defined]
 
+PNG_QUANTIZE_METHOD: Any
 try:
     PNG_QUANTIZE_METHOD = Image.Quantize.FASTOCTREE
 except AttributeError:
@@ -42,6 +43,8 @@ class PillowEngine(CompressionEngine):
     # Cache the last opened image to avoid re-opening during binary search.
     _cache_path: str | None = None
     _cache_image: Image.Image | None = None
+    _prep_cache_key: tuple[str, str, bool] | None = None
+    _prep_cache_image: Image.Image | None = None
 
     @property
     def name(self) -> str:
@@ -79,7 +82,7 @@ class PillowEngine(CompressionEngine):
 
     def get_image_size(self, image_path: str) -> tuple[int, int]:
         with Image.open(image_path) as img:
-            return img.size
+            return cast(tuple[int, int], img.size)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -95,7 +98,9 @@ class PillowEngine(CompressionEngine):
         """
         cache_key = (image_path, save_format, strip_exif)
         if getattr(self, "_prep_cache_key", None) == cache_key:
-            return self._prep_cache_image  # type: ignore[return-value]
+            cached = self._prep_cache_image
+            if cached is not None:
+                return cached
 
         with Image.open(image_path) as opened:
             image = ImageOps.exif_transpose(opened)
@@ -110,9 +115,7 @@ class PillowEngine(CompressionEngine):
         self._prep_cache_image = prepared
         return prepared
 
-    def _prepare_for_format(
-        self, image: Image.Image, save_format: str
-    ) -> Image.Image:
+    def _prepare_for_format(self, image: Image.Image, save_format: str) -> Image.Image:
         """Convert colour mode as required by *save_format*."""
         if save_format == "JPEG":
             if image.mode not in ("RGB", "L"):
@@ -146,9 +149,7 @@ class PillowEngine(CompressionEngine):
         return self._copy_meta(image, image.resize(new_size, RESAMPLE_LANCZOS))
 
     @staticmethod
-    def _do_encode_lossy(
-        image: Image.Image, save_format: str, quality: int
-    ) -> bytes:
+    def _do_encode_lossy(image: Image.Image, save_format: str, quality: int) -> bytes:
         buf = io.BytesIO()
         kwargs: dict[str, object] = {"format": save_format}
         if save_format == "JPEG":
@@ -159,7 +160,7 @@ class PillowEngine(CompressionEngine):
             kwargs.update(_metadata_kwargs(image, ("exif", "icc_profile", "xmp")))
         else:
             raise ValueError(f"不支持的有损格式：{save_format}")
-        image.save(buf, **kwargs)
+        image.save(buf, **cast(Any, kwargs))
         return buf.getvalue()
 
     @staticmethod
@@ -182,7 +183,7 @@ class PillowEngine(CompressionEngine):
         kw: dict[str, object] = {"colors": colors, "dither": PNG_DITHER}
         if PNG_QUANTIZE_METHOD is not None:
             kw["method"] = PNG_QUANTIZE_METHOD
-        return _copy_metadata(image, rgba.quantize(**kw))
+        return _copy_metadata(image, rgba.quantize(**cast(Any, kw)))
 
     @staticmethod
     def _strip_metadata(image: Image.Image) -> Image.Image:
@@ -219,8 +220,4 @@ def _metadata_kwargs(
     image: Image.Image,
     allowed_keys: tuple[str, ...],
 ) -> dict[str, object]:
-    return {
-        key: image.info[key]
-        for key in allowed_keys
-        if image.info.get(key) is not None
-    }
+    return {key: image.info[key] for key in allowed_keys if image.info.get(key) is not None}

@@ -31,8 +31,16 @@ def load_config() -> CompressionConfig:
         merged[field.name] = raw.get(field.name, defaults[field.name])
 
     try:
-        return CompressionConfig(**merged)
-    except TypeError:
+        return CompressionConfig(
+            target_size_str=str(merged["target_size_str"]),
+            format_choice=str(merged["format_choice"]),
+            output_mode=str(merged["output_mode"]),
+            custom_dir=str(merged["custom_dir"]),
+            strip_exif=bool(merged["strip_exif"]),
+            language=str(merged["language"]),
+            engine_preference=str(merged["engine_preference"]),
+        )
+    except (TypeError, KeyError):
         return default_config
 
 

@@ -12,6 +12,9 @@ References
 
 from __future__ import annotations
 
+from contextlib import suppress
+from typing import cast
+
 import pyvips  # will raise ImportError if not installed
 
 from .base import CompressionEngine
@@ -42,17 +45,23 @@ class VipsEngine(CompressionEngine):
         image = self._resize(image, scale)
 
         if save_format == "JPEG":
-            return image.jpegsave_buffer(
-                Q=quality,
-                optimize_coding=True,
-                interlace=True,
-                strip=strip_exif,
+            return cast(
+                bytes,
+                image.jpegsave_buffer(
+                    Q=quality,
+                    optimize_coding=True,
+                    interlace=True,
+                    strip=strip_exif,
+                ),
             )
         if save_format == "WEBP":
-            return image.webpsave_buffer(
-                Q=quality,
-                effort=6,
-                strip=strip_exif,
+            return cast(
+                bytes,
+                image.webpsave_buffer(
+                    Q=quality,
+                    effort=6,
+                    strip=strip_exif,
+                ),
             )
         raise ValueError(f"不支持的有损格式：{save_format}")
 
@@ -68,17 +77,23 @@ class VipsEngine(CompressionEngine):
         image = self._resize(image, scale)
 
         if colors is not None:
-            return image.pngsave_buffer(
+            return cast(
+                bytes,
+                image.pngsave_buffer(
+                    compression=9,
+                    effort=10,
+                    palette=True,
+                    colours=colors,
+                    strip=strip_exif,
+                ),
+            )
+        return cast(
+            bytes,
+            image.pngsave_buffer(
                 compression=9,
                 effort=10,
-                palette=True,
-                colours=colors,
                 strip=strip_exif,
-            )
-        return image.pngsave_buffer(
-            compression=9,
-            effort=10,
-            strip=strip_exif,
+            ),
         )
 
     def get_image_size(self, image_path: str) -> tuple[int, int]:
@@ -108,17 +123,13 @@ class VipsEngine(CompressionEngine):
                 ):
                     fields_to_remove.append(field)
             for field in fields_to_remove:
-                try:
+                with suppress(pyvips.Error):
                     image = image.mutate(lambda m, f=field: m.remove(f))
-                except pyvips.Error:
-                    pass  # field may not exist
 
         return image
 
     @staticmethod
-    def _prepare_for_lossy(
-        image: pyvips.Image, save_format: str
-    ) -> pyvips.Image:
+    def _prepare_for_lossy(image: pyvips.Image, save_format: str) -> pyvips.Image:
         """Convert to sRGB and flatten alpha for JPEG."""
         # Ensure sRGB colourspace
         if image.interpretation != "srgb":
